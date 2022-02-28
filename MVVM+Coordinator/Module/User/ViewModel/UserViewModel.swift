@@ -12,15 +12,14 @@ enum UserError: Error {
     case unknownError
 }
 
-enum Response {
+enum State {
     case loading
-    case success([String])
-    case failure(Error)
+    case finished(Result<[String], Error>)
 }
 
 class UserViewModel {
     
-    var response: Box<Response> = Box(.loading)
+    var requestState: Box<State> = Box(.loading)
     private var users: [User] = []
     
     func fetchUserData() {
@@ -32,10 +31,10 @@ class UserViewModel {
             if number % 2 == 0 {
                 print("Success response returned...")
                 self.users = User.mock()
-                self.response.value = .success(self.users.map { $0.name })
+                self.requestState.value = .finished(.success(self.users.map { $0.name }) )
             } else {
                 print("Failure response returned...")
-                self.response.value = .failure(UserError.unknownError)
+                self.requestState.value = .finished(.failure(UserError.unknownError))
             }
         }
     }

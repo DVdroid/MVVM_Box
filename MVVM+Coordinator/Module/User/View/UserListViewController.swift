@@ -7,6 +7,10 @@
 
 import UIKit
 
+protocol UserListViewControllerProtocol: AnyObject {
+    func didSelectRow(at indexPath: IndexPath)
+}
+
 enum Section {
     case `default`
 }
@@ -16,12 +20,13 @@ typealias TableDataSource = UITableViewDiffableDataSource<Section, String>
 final class UserListViewController: UIViewController {
     
     private lazy var viewModel = UserViewModel()
-    private var data: [String] = []
+    
+    weak var delegate:UserListViewControllerProtocol?
     
     lazy var dataSource: TableDataSource = {
         let dataSource = TableDataSource(tableView: self.tableView) { [weak self] tableView, indexPath, item in
             let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-            cell.textLabel?.text = self?.data [indexPath.row]
+            cell.textLabel?.text = item
             
             return cell
         }
@@ -56,18 +61,19 @@ final class UserListViewController: UIViewController {
         self.tableView.delegate = self
         title = "User List"
         
-        viewModel.response.bind { [weak self] (response: Response) in
-            switch response {
+        viewModel.requestState.bind { [weak self] (state: State) in
+            switch state {
                 
             case .loading:
                 print("Call in progress...")
                 
-            case .success(let users):
-                self?.data = users
-                self?.update(with: users)
-                
-            case .failure(let error):
-                self?.update(with: error.localizedDescription)
+            case .finished(let result):
+                switch result {
+                case .success(let users):
+                    self?.update(with: users)
+                case .failure(let error):
+                    self?.update(with: error.localizedDescription)
+                }
             }
         }
         
@@ -110,6 +116,7 @@ extension UserListViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: false)
+        self.delegate?.didSelectRow(at: indexPath)
     }
 }
 
